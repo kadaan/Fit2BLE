@@ -1,0 +1,46 @@
+{
+  "name": "Fit2BLE",
+  "description": "Reads FIT files and exposes the data via BLE services.",
+  "version": "0.0.1",
+  "author": "Joel Baranick",
+  "bin": {
+    "fit2ble": "./bin/run"
+  },
+  "bugs": "https://github.com/kadaan/Fit2BLE/issues",
+  "dependencies": {
+    "@abandonware/bleno": "^0.5.1-3",
+    "@abandonware/noble": "^1.9.2-13",
+    "@oclif/command": "^1",
+    "@oclif/config": "^1",
+    "@oclif/plugin-help": "^3",
+    "fit-file-parser": "^1.9.0"
+  },
+  "devDependencies": {
+    "@oclif/dev-cli": "^1",
+    "eslint": "^5.13",
+    "eslint-config-oclif": "^3.1"
+  },
+  "engines": {
+    "node": ">=10.0.0"
+  },
+  "files": [
+    "/bin",
+    "/src"
+  ],
+  "homepage": "https://github.com/kadaan/Fit2BLE",
+  "keywords": [
+    "oclif"
+  ],
+  "license": "Apache-2.0",
+  "main": "src/index.js",
+  "oclif": {
+    "bin": "fit2ble"
+  },
+  "repository": "kadaan/Fit2BLE",
+  "scripts": {
+    "posttest": "eslint .",
+    "prepack": "oclif-dev readme",
+    "test": "echo NO TESTS",
+    "version": "oclif-dev readme && git add README.md"
+  }
+}

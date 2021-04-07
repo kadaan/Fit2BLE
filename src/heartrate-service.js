@@ -11,8 +11,10 @@ class HeartrateService extends bleno.PrimaryService {
     })
   }
 
-  setHeartRate(heartRate) {
-    this.characteristics[0].setHeartRate(heartRate)
+  update(heartRate) {
+    if (heartRate !== null) {
+      this.characteristics[0].update(heartRate)
+    }
   }
 }
 

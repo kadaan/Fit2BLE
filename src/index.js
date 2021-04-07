@@ -3,6 +3,7 @@ const {Command, flags} = require('@oclif/command')
 const FitFileParser = require('fit-file-parser').default
 const bleno = require('@abandonware/bleno')
 const FtmsControlService = require('./ftms-control-service')
+const FtmsService = require('./ftms-service')
 const HeartrateService = require('./heartrate-service')
 
 class Fit2BleCommand extends Command {
@@ -15,6 +16,7 @@ class Fit2BleCommand extends Command {
     this.lastDistance = null
     this.data = null
     this.heartrateService = new HeartrateService()
+    this.ftmsService = new FtmsService()
     this.ftmsControlService = new FtmsControlService()
   }
 
@@ -29,7 +31,7 @@ class Fit2BleCommand extends Command {
 
     const fitFileParser = new FitFileParser({
       force: true,
-      speedUnit: 'm/s',
+      speedUnit: 'km/h',
       lengthUnit: 'm',
       temperatureUnit: 'celsius',
       elapsedRecordField: false,
@@ -45,18 +47,22 @@ class Fit2BleCommand extends Command {
     bleno.on('stateChange', function (state) {
       console.log(`bleno: on -> stateChange: ${state}`)
       if (state === 'poweredOn') {
-        console.log(`bleno: enabling uuids: ${this.heartrateService.uuid}`)
-        bleno.startAdvertising('Fit2Ble', [this.heartrateService.uuid])
+        console.log(`bleno: enabling uuids: ${this.heartrateService.uuid} ${this.ftmsService.uuid}`)
+        bleno.startAdvertising('Fit2Ble', [this.heartrateService.uuid, this.ftmsService.uuid])
       } else {
         bleno.stopAdvertising()
       }
     }.bind(this))
 
+    bleno.on('advertisingStartError', function (error) {
+      console.log(`bleno: on -> advertisingStartError: ${error}`)
+    })
+
     bleno.on('advertisingStart', function (error) {
       console.log(`bleno: on -> advertisingStart: ${error ? 'error ' + error : 'success'}`)
 
       if (!error) {
-        bleno.setServices([this.heartrateService], function (error) {
+        bleno.setServices([this.heartrateService, this.ftmsService], function (error) {
           console.log(`bleno: setServices: ${error ? 'error ' + error : 'success'}`)
         })
       }
@@ -87,19 +93,42 @@ class Fit2BleCommand extends Command {
       await this.sleep(timeToSleep)
     }
 
-    // this.log(`now: ${now}, recordTimestamp: ${recordTimestamp}, lastRecordTimestamp: ${this.lastRecordTimestamp}, recordTimeOffset: ${recordTimeOffset}, lastSend: ${this.lastSend}, nextSend: ${nextSend}, timeToSleep: ${timeToSleep}`)
-    this.heartrateService.setHeartRate(record.heart_rate)
+    let heartRate = null
+    let speed = null
+    let power = null
+    let cadence = null
+    if ('heart_rate' in record) {
+      heartRate = record.heart_rate
+    }
+    if ('speed' in record) {
+      speed = record.speed
+    }
+    if ('power' in record) {
+      power = record.power
+    }
+    if ('cadence' in record) {
+      cadence = record.cadence
+    }
+    this.heartrateService.update(heartRate)
+    this.ftmsService.update(heartRate, speed, cadence, power)
+
+    let percentGrade = 0
+    let rise = 0
+    let run = 0
     if (this.lastAltitude !== null && this.lastDistance !== null && record.altitude !== null && record.distance !== null) {
       let incline = 0
-      let rise = record.altitude - this.lastAltitude
-      let run = record.distance - this.lastDistance
+      rise = record.altitude - this.lastAltitude
+      run = record.distance - this.lastDistance
       if (run > 0) {
         incline = rise / run
       }
-      let percentGrade = incline * 100
-      this.log(`percentGrade: ${percentGrade}, altitude: ${record.altitude}, lastAltitude: ${this.lastAltitude}, distance: ${record.distance}, lastDistance: ${this.lastDistance}`)
+      percentGrade = incline * 100
       await this.ftmsControlService.setIncline(percentGrade)
     }
+    let d = new Date(0) // The 0 there is the key, which sets the date to the epoch
+    d.setUTCSeconds(recordTimestamp / 1000)
+    // this.log(`${d.getHours()}:${d.getMinutes()}:${d.getSeconds()},${percentGrade.toFixed(2)},${record.altitude.toFixed(2)}`)
+    this.log(`timestamp: ${recordTimestamp}, timeDelta: ${recordTimeOffset}, hr: ${heartRate === null ? '-' : heartRate}, pwr: ${power === null ? '-' : power}, cad: ${cadence === null ? '-' : cadence}, spd: ${speed === null ? '-' : speed}, incline: ${percentGrade.toFixed(2)}`)
     if (record.altitude !== null) {
       this.lastDistance = record.distance
     }
@@ -111,7 +140,7 @@ class Fit2BleCommand extends Command {
 
   sleep(ms) {
     return new Promise(resolve => {
-      setTimeout(resolve, ms / 8)
+      setTimeout(resolve, ms)
     })
   }
 }

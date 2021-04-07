@@ -1,20 +1,16 @@
 const bleno = require('@abandonware/bleno')
 
-class HeartrateCharacteristic extends bleno.Characteristic {
+class FtmsFeatureCharacteristic extends bleno.Characteristic {
   constructor() {
     super({
-      uuid: '2A37',
+      uuid: '2ACC',
       properties: ['read', 'notify'],
     })
-    this.buffer = Buffer.alloc(2, 0)
-  }
-
-  update(heartRate) {
-    this.buffer[1] = heartRate
+    this.buffer = Buffer.from([0, 0, 0, 0, 12, 224, 0, 0])
   }
 
   onReadRequest(offset, callback) {
-    console.log('bleno: HeartrateCharacteristic readRequest')
+    console.log('bleno: FtmsFeatureCharacteristic readRequest')
     if (offset) {
       callback(this.RESULT_ATTR_NOT_LONG, null)
     } else {
@@ -23,15 +19,15 @@ class HeartrateCharacteristic extends bleno.Characteristic {
   }
 
   onSubscribe(maxValueSize, updateValueCallback) {
-    console.log('bleno: HeartrateCharacteristic subscribe')
+    console.log('bleno: FtmsFeatureCharacteristic subscribe')
     this.notifyInterval = setInterval(function () {
-      console.log('bleno: HeartrateCharacteristic update')
+      console.log('bleno: FtmsFeatureCharacteristic update')
       updateValueCallback(this.buffer)
     }.bind(this), 1000)
   }
 
   onUnsubscribe() {
-    console.log('bleno: HeartrateCharacteristic unsubscribe')
+    console.log('bleno: FtmsFeatureCharacteristic unsubscribe')
     if (this.notifyInterval) {
       clearInterval(this.notifyInterval)
       this.notifyInterval = null
@@ -39,4 +35,4 @@ class HeartrateCharacteristic extends bleno.Characteristic {
   }
 }
 
-module.exports = HeartrateCharacteristic
+module.exports = FtmsFeatureCharacteristic

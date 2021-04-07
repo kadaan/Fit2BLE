@@ -14,19 +14,28 @@ class HeartrateCharacteristic extends bleno.Characteristic {
     this.heartrate = heartrate
   }
 
+  onReadRequest(offset, callback) {
+    console.log('bleno: HeartrateCharacteristic readRequest');
+    if (offset) {
+      callback(this.RESULT_ATTR_NOT_LONG, null)
+    } else {
+      callback(this.RESULT_SUCCESS, Buffer.from([0, this.heartrate]));
+    }
+  }
+
   onSubscribe(maxValueSize, updateValueCallback) {
-    console.log('HeartrateCharacteristic subscribe')
+    console.log('bleno: HeartrateCharacteristic subscribe')
 
     this.counter = 0
     this.notifyInterval = setInterval(function () {
-      console.log('HeartrateCharacteristic update value: ' + this.counter)
-      updateValueCallback(Buffer.from([this.heartrate]))
+      console.log('bleno: HeartrateCharacteristic update value: ' + this.counter)
+      updateValueCallback(Buffer.from([0, this.heartrate]))
       this.counter++
     }.bind(this), 1000)
   }
 
   onUnsubscribe() {
-    console.log('HeartrateCharacteristic unsubscribe')
+    console.log('bleno: HeartrateCharacteristic unsubscribe')
 
     if (this.notifyInterval) {
       clearInterval(this.notifyInterval)
